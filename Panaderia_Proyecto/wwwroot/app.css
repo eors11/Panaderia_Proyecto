@@ -1,0 +1,216 @@
+h1:focus {
+    outline: none;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid #e50000;
+}
+
+.validation-message {
+    color: #e50000;
+}
+
+.blazor-error-boundary {
+    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzkurn7yA1My42MjgzIDI5MC4xODUgOTIuMTE...==) no-repeat 1rem/1.8rem, #b32121;
+    padding: 1rem 1rem 1rem 3.7rem;
+    color: white;
+}
+
+    .blazor-error-boundary::after {
+        content: "An error has occurred."
+    }
+
+.darker-border-checkbox.form-check-input {
+    border-color: #929292;
+}
+
+.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+    text-align: start;
+}
+
+/* ==========================================
+   ESTILOS DE LA HOME (SECCIÓN BIENVENIDA)
+   ========================================== */
+.welcome-section {
+    max-width: 800px;
+    margin: 3rem auto;
+    padding: 2.5rem;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(74, 52, 35, 0.05);
+    text-align: center;
+    border: 1px solid #f5eedc;
+}
+
+#titulo {
+    color: #4a3423;
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1.5rem;
+}
+
+.descripcion-home {
+    color: #5c4433;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+/* ==========================================
+   ESTILOS ESTRUCTURALES Y FONDO GENERAL
+   ========================================== */
+body {
+    background-color: #FFF8F0 !important; /* Color crema en toda la pantalla */
+    margin: 0;
+    padding: 0;
+    color: #6D4C41;
+}
+
+/* CORREGIDO: Se quitó el color sólido para que deje pasar el crema del body */
+.contenedor-panaderia {
+    background-color: transparent !important;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.contenido-principal {
+    padding-top: 2rem;
+    background-color: transparent !important;
+}
+
+/* ==========================================
+   NAVBAR SUPERIOR COHESIVO
+   ========================================== */
+.nav-panaderia {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #FFD199;
+    padding: 0.8rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    position: sticky; /* Menú sticky que no tapa el contenido */
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    border-radius: 0 0 15px 15px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+.navbar-brand-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #6D4C41;
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.icon-pan {
+    font-size: 1.5rem;
+    color: #E8A87C;
+}
+
+.panaderia-menu-items {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* CORREGIDO: Alineación perfecta en el interior de los enlaces */
+.panaderia-link {
+    color: #6D4C41;
+    text-decoration: none;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+    .panaderia-link:hover {
+        background-color: #F7C5A8;
+        color: #6D4C41;
+        transform: translateY(-2px);
+    }
+
+    .panaderia-link.active {
+        background-color: #E8A87C;
+        color: #FFFDF9;
+        font-weight: bold;
+    }
+
+.panaderia-toggler,
+.panaderia-hamburger {
+    display: none;
+}
+
+/* ==========================================
+   RESPONSIVO CELULARES Y TABLETS
+   ========================================== */
+@media (max-width: 768px) {
+    .nav-panaderia {
+        padding: 1rem;
+        border-radius: 0;
+    }
+
+    .panaderia-hamburger {
+        display: block;
+        color: #E8A87C;
+        font-size: 1.8rem;
+        cursor: pointer;
+    }
+
+    .panaderia-menu-items {
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background-color: #FFF4E6;
+        padding: 1rem 0;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        border-radius: 0 0 15px 15px;
+    }
+
+    .panaderia-item {
+        width: 100%;
+        text-align: center;
+    }
+
+    .panaderia-link {
+        justify-content: center;
+        padding: 1rem;
+        border-radius: 0;
+    }
+
+    .panaderia-toggler:checked ~ .panaderia-menu-items {
+        display: flex;
+    }
+}
+.navbar-brand-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-logo {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+}
