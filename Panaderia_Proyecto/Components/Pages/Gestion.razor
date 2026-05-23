@@ -1,8 +1,202 @@
 ﻿@page "/gestion"
 
-<h3>Gestion</h3>
+@using Panaderia_Proyecto.Models
+@using Panaderia_Proyecto.Data
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext Db
+
+
+<h2>Gestión de Clientes</h2>
+
+
+<div style="border:1px solid #ccc; padding:1rem; margin-bottom:1rem; border-radius:8px;">
+    <h4>@(clienteEditando.Id == 0 ? "Nuevo Cliente" : "Editar Cliente")</h4>
+
+    <div>
+        <label>Nombre *</label>
+        @* @bind conecta el input con la propiedad C# en tiempo real *@
+        <input @bind="clienteEditando.Nombre" placeholder="Nombre completo" />
+    </div>
+    <div>
+        <label>Teléfono</label>
+        <input @bind="clienteEditando.Telefono" placeholder="10 dígitos" />
+    </div>
+    <div>
+        <label>Email</label>
+        <input @bind="clienteEditando.Email" placeholder="correo@ejemplo.com" />
+    </div>
+
+    @* Muestra el error si hay validación fallida *@
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <p style="color:red;">⚠️ @mensajeError</p>
+    }
+    @if (!string.IsNullOrEmpty(mensajeExito))
+    {
+        <p style="color:green;">✅ @mensajeExito</p>
+    }
+
+    <br />
+    <button @onclick="GuardarCliente">
+        @(clienteEditando.Id == 0 ? "➕ Agregar" : "💾 Guardar cambios")
+    </button>
+    @if (clienteEditando.Id != 0)
+    {
+        @* Solo muestra Cancelar cuando estás editando *@
+        <button @onclick="CancelarEdicion">❌ Cancelar</button>
+    }
+</div>
+
+@* ========== LISTA DE CLIENTES ========== *@
+@if (clientes == null)
+{
+    @* Mientras carga la BD, muestra este mensaje *@
+    <p>Cargando clientes...</p>
+}
+else if (!clientes.Any())
+{
+    <p>No hay clientes registrados aún.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Teléfono</th>
+                <th>Email</th>
+                <th>Fecha Registro</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var cliente in clientes)
+            {
+                <tr>
+                    <td>@cliente.Nombre</td>
+                    <td>@cliente.Telefono</td>
+                    <td>@cliente.Email</td>
+                    <td>@cliente.FechaRegistro.ToShortDateString()</td>
+                    <td>
+                        @* Al hacer clic en Editar, carga los datos en el formulario *@
+                        <button @onclick="() => EditarCliente(cliente)">✏️ Editar</button>
+                        <button @onclick="() => ConfirmarEliminar(cliente.Id)"
+                                style="color:red;">
+                            🗑️ Eliminar
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@* ========== CONFIRMACIÓN DE ELIMINAR ========== *@
+@* Solo aparece cuando el usuario hace clic en Eliminar *@
+@if (idAEliminar != 0)
+{
+    <div style="border:2px solid red; padding:1rem; margin-top:1rem; border-radius:8px;">
+        <p>⚠️ ¿Estás seguro de que quieres eliminar este cliente?</p>
+        <button @onclick="EliminarCliente" style="color:red;">Sí, eliminar</button>
+        <button @onclick="() => idAEliminar = 0">No, cancelar</button>
+    </div>
+}
 
 @code {
+    // Lista de clientes que se muestra en la tabla
+    // Es null al inicio para mostrar "Cargando..."
+    private List<Cliente>? clientes;
 
+    // Objeto que se llena con el formulario
+    // Si Id == 0 es nuevo, si Id > 0 es edición
+    private Cliente clienteEditando = new();
+
+    // Guarda el Id del cliente que se quiere eliminar
+    // 0 significa que no hay confirmación activa
+    private int idAEliminar = 0;
+
+    private string mensajeError = string.Empty;
+    private string mensajeExito = string.Empty;
+
+    // OnInitializedAsync se ejecuta automáticamente cuando la página carga
+    // Es como el "constructor" del componente Blazor
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarClientes();
+    }
+
+    // Trae todos los clientes de la BD y los guarda en la lista
+    private async Task CargarClientes()
+    {
+        clientes = await Db.Clientes.ToListAsync();
+    }
+
+    private async Task GuardarCliente()
+    {
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+
+        // Validación básica — campo obligatorio
+        if (string.IsNullOrWhiteSpace(clienteEditando.Nombre))
+        {
+            mensajeError = "El nombre es obligatorio.";
+            return; // Detiene la ejecución si falla la validación
+        }
+
+        if (clienteEditando.Id == 0)
+        {
+            // Id == 0 significa que es nuevo — lo agrega a la BD
+            Db.Clientes.Add(clienteEditando);
+            mensajeExito = "Cliente agregado correctamente.";
+        }
+        else
+        {
+            // Id > 0 significa que ya existe — lo actualiza en la BD
+            Db.Clientes.Update(clienteEditando);
+            mensajeExito = "Cliente actualizado correctamente.";
+        }
+
+        await Db.SaveChangesAsync(); // Guarda los cambios en Azure SQL
+        clienteEditando = new(); // Limpia el formulario
+        await CargarClientes();  // Refresca la lista
+    }
+
+    // Carga los datos del cliente seleccionado en el formulario
+    private void EditarCliente(Cliente cliente)
+    {
+        // Crea una copia para no modificar el original directamente
+        clienteEditando = new Cliente
+        {
+            Id = cliente.Id,
+            Nombre = cliente.Nombre,
+            Telefono = cliente.Telefono,
+            Email = cliente.Email,
+            FechaRegistro = cliente.FechaRegistro
+        };
+    }
+
+    private void CancelarEdicion()
+    {
+        clienteEditando = new(); // Limpia el formulario y vuelve a modo "nuevo"
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+    }
+
+    // Guarda el Id y muestra el cuadro de confirmación
+    private void ConfirmarEliminar(int id)
+    {
+        idAEliminar = id;
+    }
+
+    private async Task EliminarCliente()
+    {
+        var cliente = await Db.Clientes.FindAsync(idAEliminar);
+        if (cliente != null)
+        {
+            Db.Clientes.Remove(cliente);
+            await Db.SaveChangesAsync();
+        }
+        idAEliminar = 0; // Cierra el cuadro de confirmación
+        await CargarClientes();
+    }
 }
-body
