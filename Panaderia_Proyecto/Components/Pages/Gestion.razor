@@ -1,5 +1,4 @@
-﻿
-@page "/gestion"
+﻿@page "/gestion"
 @rendermode InteractiveServer
 @using Panaderia_Proyecto.Models
 @using Panaderia_Proyecto.Data
@@ -8,13 +7,11 @@
 
 <h2>Gestión de Clientes</h2>
 
-
 <div style="border:1px solid #ccc; padding:1rem; margin-bottom:1rem; border-radius:8px;">
     <h4>@(clienteEditando.Id == 0 ? "Nuevo Cliente" : "Editar Cliente")</h4>
 
     <div>
         <label>Nombre *</label>
-        @* @bind conecta el input con la propiedad C# en tiempo real *@
         <input @bind="clienteEditando.Nombre" placeholder="Nombre completo" />
     </div>
     <div>
@@ -26,7 +23,6 @@
         <input @bind="clienteEditando.Email" placeholder="correo@ejemplo.com" />
     </div>
 
-    @* Muestra el error si hay validación fallida *@
     @if (!string.IsNullOrEmpty(mensajeError))
     {
         <p style="color:red;">⚠️ @mensajeError</p>
@@ -38,19 +34,16 @@
 
     <br />
     <button @onclick="GuardarCliente">
-        @(clienteEditando.Id == 0 ? "➕ Agregar" : "💾 Guardar cambios")
+        @(clienteEditando.Id == 0 ? "Agregar" : "Guardar cambios")
     </button>
     @if (clienteEditando.Id != 0)
     {
-        @* Solo muestra Cancelar cuando estás editando *@
-        <button @onclick="CancelarEdicion">❌ Cancelar</button>
+        <button @onclick="CancelarEdicion">Cancelar</button>
     }
 </div>
 
-@* ========== LISTA DE CLIENTES ========== *@
 @if (clientes == null)
 {
-    @* Mientras carga la BD, muestra este mensaje *@
     <p>Cargando clientes...</p>
 }
 else if (!clientes.Any())
@@ -78,12 +71,8 @@ else
                     <td>@cliente.Email</td>
                     <td>@cliente.FechaRegistro.ToShortDateString()</td>
                     <td>
-                        @* Al hacer clic en Editar, carga los datos en el formulario *@
                         <button @onclick="() => EditarCliente(cliente)">✏️ Editar</button>
-                        <button @onclick="() => ConfirmarEliminar(cliente.Id)"
-                                style="color:red;">
-                            🗑️ Eliminar
-                        </button>
+                        <button @onclick="() => ConfirmarEliminar(cliente.Id)" style="color:red;">Eliminar</button>
                     </td>
                 </tr>
             }
@@ -91,8 +80,6 @@ else
     </table>
 }
 
-@* ========== CONFIRMACIÓN DE ELIMINAR ========== *@
-@* Solo aparece cuando el usuario hace clic en Eliminar *@
 @if (idAEliminar != 0)
 {
     <div style="border:2px solid red; padding:1rem; margin-top:1rem; border-radius:8px;">
@@ -103,32 +90,22 @@ else
 }
 
 @code {
-    // Lista de clientes que se muestra en la tabla
-    // Es null al inicio para mostrar "Cargando..."
     private List<Cliente>? clientes;
-
-    // Objeto que se llena con el formulario
-    // Si Id == 0 es nuevo, si Id > 0 es edición
     private Cliente clienteEditando = new();
-
-    // Guarda el Id del cliente que se quiere eliminar
-    // 0 significa que no hay confirmación activa
     private int idAEliminar = 0;
-
     private string mensajeError = string.Empty;
     private string mensajeExito = string.Empty;
 
-    // OnInitializedAsync se ejecuta automáticamente cuando la página carga
-    // Es como el "constructor" del componente Blazor
     protected override async Task OnInitializedAsync()
     {
         await CargarClientes();
     }
 
-    // Trae todos los clientes de la BD y los guarda en la lista
+    // AsNoTracking hace que EF no rastree los objetos cargados
+    // Esto evita conflictos cuando luego intentamos editar o eliminar
     private async Task CargarClientes()
     {
-        clientes = await Db.Clientes.ToListAsync();
+        clientes = await Db.Clientes.AsNoTracking().ToListAsync();
     }
 
     private async Task GuardarCliente()
@@ -136,35 +113,39 @@ else
         mensajeError = string.Empty;
         mensajeExito = string.Empty;
 
-        // Validación básica — campo obligatorio
         if (string.IsNullOrWhiteSpace(clienteEditando.Nombre))
         {
             mensajeError = "El nombre es obligatorio.";
-            return; // Detiene la ejecución si falla la validación
+            return;
         }
 
         if (clienteEditando.Id == 0)
         {
-            // Id == 0 significa que es nuevo — lo agrega a la BD
+            // Nuevo cliente — EF lo inserta en la BD
             Db.Clientes.Add(clienteEditando);
             mensajeExito = "Cliente agregado correctamente.";
         }
         else
         {
-            // Id > 0 significa que ya existe — lo actualiza en la BD
-            Db.Clientes.Update(clienteEditando);
+            // Edición — buscamos el original rastreado por EF y le cambiamos los campos
+            // Esto evita el error de "already being tracked"
+            var original = await Db.Clientes.FindAsync(clienteEditando.Id);
+            if (original != null)
+            {
+                original.Nombre = clienteEditando.Nombre;
+                original.Telefono = clienteEditando.Telefono;
+                original.Email = clienteEditando.Email;
+            }
             mensajeExito = "Cliente actualizado correctamente.";
         }
 
-        await Db.SaveChangesAsync(); // Guarda los cambios en Azure SQL
-        clienteEditando = new(); // Limpia el formulario
-        await CargarClientes();  // Refresca la lista
+        await Db.SaveChangesAsync();
+        clienteEditando = new();
+        await CargarClientes();
     }
 
-    // Carga los datos del cliente seleccionado en el formulario
     private void EditarCliente(Cliente cliente)
     {
-        // Crea una copia para no modificar el original directamente
         clienteEditando = new Cliente
         {
             Id = cliente.Id,
@@ -177,12 +158,11 @@ else
 
     private void CancelarEdicion()
     {
-        clienteEditando = new(); // Limpia el formulario y vuelve a modo "nuevo"
+        clienteEditando = new();
         mensajeError = string.Empty;
         mensajeExito = string.Empty;
     }
 
-    // Guarda el Id y muestra el cuadro de confirmación
     private void ConfirmarEliminar(int id)
     {
         idAEliminar = id;
@@ -190,13 +170,14 @@ else
 
     private async Task EliminarCliente()
     {
+        // FindAsync sí rastrea el objeto, lo que permite eliminarlo correctamente
         var cliente = await Db.Clientes.FindAsync(idAEliminar);
         if (cliente != null)
         {
             Db.Clientes.Remove(cliente);
             await Db.SaveChangesAsync();
         }
-        idAEliminar = 0; // Cierra el cuadro de confirmación
+        idAEliminar = 0;
         await CargarClientes();
     }
 }
