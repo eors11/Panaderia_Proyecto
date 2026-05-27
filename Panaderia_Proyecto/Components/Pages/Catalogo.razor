@@ -1,6 +1,82 @@
 ﻿@page "/catalogo"
-<h3>Catalogo</h3>
+@rendermode InteractiveServer
+@using Panaderia_Proyecto.Models
+@inject IHttpClientFactory HttpClientFactory
+
+<h2>Catálogo de Productos</h2>
+
+@* ========== FILTRO POR CATEGORÍA ========== *@
+<div>
+    <label>Filtrar por categoría:</label>
+    <select @onchange="FiltrarPorCategoria">
+        @* Solo mostramos las categorías relevantes para la panadería *@
+        <option value="6">Panadería</option>
+        <option value="5">Postres</option>
+        <option value="3">Bebidas calientes</option>
+    </select>
+</div>
+
+<br />
+
+@* Mensaje de carga mientras espera la respuesta de la API *@
+@if (platillos == null)
+{
+    <p>Cargando catálogo...</p>
+}
+else if (!platillos.Any())
+{
+    <p>No hay productos disponibles en esta categoría.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Precio</th>
+                <th>Categoría</th>
+                <th>Disponible</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in platillos)
+            {
+                <tr>
+                    <td>@p.Nombre</td>
+                    <td>@p.Descripcion</td>
+                    <td>$@p.Precio.ToString("F2")</td>
+                    <td>@p.Categoria</td>
+                    <td>@(p.Disponible ? "✅" : "❌")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
 
 @code {
+    private List<Platillo>? platillos;
+    private HttpClient http = default!;
 
+    protected override async Task OnInitializedAsync()
+    {
+        http = HttpClientFactory.CreateClient("ApiProfe");
+        // Carga panadería por default al entrar a la página
+        await CargarPorCategoria(6);
+    }
+
+    private async Task CargarPorCategoria(int categoriaId)
+    {
+        // Pone null primero para mostrar "Cargando..." mientras espera
+        platillos = null;
+        platillos = await http.GetFromJsonAsync<List<Platillo>>(
+            $"api/alimentacion/platillos/categoria/{categoriaId}");
+    }
+
+    private async Task FiltrarPorCategoria(ChangeEventArgs e)
+    {
+        // Lee el valor del dropdown y carga los platillos de esa categoría
+        var categoriaId = int.Parse(e.Value?.ToString() ?? "6");
+        await CargarPorCategoria(categoriaId);
+    }
 }
