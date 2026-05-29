@@ -1,7 +1,9 @@
 Nombre completo: Edgar Omar Reyes Salvador
 
 número de cuenta:20216602
+
 negocio asignado: El Quaso Panaderia
+
 URL de la API: /api/alimentacion/platillos, /api/alimentacion/categorias, /api/alimentacion/platillos/categoria/{id}
 
 Captura 1:
@@ -12,3 +14,8 @@ Captura 3:
 <img width="1919" height="1000" alt="image" src="https://github.com/user-attachments/assets/10ae70c3-40bf-4371-ab11-c211a901cdd4" />
 
 Captura 4:
+
+
+Declaratoria de uso de IA:
+Use la IA como apoyo y ayuda para orientarme para saber comoo hacerlo
+https://chatgpt.com/share/6a19bc6f-17bc-83e8-b197-8a62a15000d2
