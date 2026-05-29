@@ -9,11 +9,13 @@ URL de la API: /api/alimentacion/platillos, /api/alimentacion/categorias, /api/a
 Captura 1:
 <img width="1919" height="999" alt="Captura de pantalla 2026-05-28 214651" src="https://github.com/user-attachments/assets/1963d170-be0a-4c81-bfbe-2d053a62008b" />
 Captura 2:
+<img width="1919" height="1000" alt="Captura de pantalla 2026-05-28 220957" src="https://github.com/user-attachments/assets/ae762efa-9a2e-454a-85ab-0104e946b522" />
 
 Captura 3:
 <img width="1919" height="1000" alt="image" src="https://github.com/user-attachments/assets/10ae70c3-40bf-4371-ab11-c211a901cdd4" />
 
 Captura 4:
+<img width="1919" height="994" alt="image" src="https://github.com/user-attachments/assets/c7253d14-8320-4bce-9837-3b6276746b32" />
 
 
 Declaratoria de uso de IA:
