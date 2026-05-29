@@ -1,7 +1,248 @@
 ﻿@page "/registro"
 
-<h3>Registro</h3>
+@rendermode InteractiveServer
+@using Panaderia_Proyecto.Models
+@using Panaderia_Proyecto.Data
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext Db
+@inject IHttpClientFactory HttpClientFactory
+
+<h2>Registro de Operaciones</h2>
+
+<div style="border:1px solid #ccc; padding:1rem; margin-bottom:1rem; border-radius:8px;">
+    <h4>Nueva Venta</h4>
+
+    <div>
+        <label>Cliente *</label>
+        @* Dropdown con clientes de tu BD en Azure *@
+        <select @bind="nuevaVenta.ClienteId">
+            <option value="0">-- Selecciona un cliente --</option>
+            @if (clientes != null)
+            {
+                @foreach (var c in clientes)
+                {
+                    <option value="@c.Id">@c.Nombre</option>
+                }
+            }
+        </select>
+        @* Mensaje de error individual por campo *@
+        @if (mostrarErrores && nuevaVenta.ClienteId == 0)
+        {
+            <p style="color:red;">Selecciona un cliente.</p>
+        }
+    </div>
+
+    <div>
+        <label>Producto *</label>
+        @* Dropdown con productos de la API del profe *@
+        <select @bind="platilloSeleccionadoId">
+            <option value="0">-- Selecciona un producto --</option>
+            @if (platillos != null)
+            {
+                @foreach (var p in platillos)
+                {
+                    <option value="@p.Id">@p.Nombre — $@p.Precio.ToString("F2")</option>
+                }
+            }
+            @if (platillos == null)
+            {
+                <option disabled>Cargando productos...</option>
+            }
+        </select>
+        @if (mostrarErrores && platilloSeleccionadoId == 0)
+        {
+            <p style="color:red;">Selecciona un producto.</p>
+        }
+    </div>
+
+    <div>
+        <label>Cantidad *</label>
+        <input type="number" @bind="cantidad" min="1" />
+        @if (mostrarErrores && cantidad <= 0)
+        {
+            <p style="color:red;">La cantidad debe ser mayor a 0.</p>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <p style="color:red;">@mensajeError</p>
+    }
+    @if (!string.IsNullOrEmpty(mensajeExito))
+    {
+        <p style="color:green;">@mensajeExito</p>
+    }
+
+    <br />
+    <button @onclick="RegistrarVenta">Registrar Venta</button>
+</div>
+
+<h4>Historial de Ventas</h4>
+
+@if (ventas == null)
+{
+    <p>Cargando historial...</p>
+}
+else if (!ventas.Any())
+{
+    <p>No hay ventas registradas aún.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Cliente</th>
+                <th>Producto (API)</th>
+                <th>Cantidad</th>
+                <th>Total</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var v in ventas)
+            {
+                <tr>
+                    <td>@v.VentaId</td>
+                    <td>@v.ClienteNombre</td>
+                    <td>@v.ProductoNombre</td>
+                    <td>@v.Cantidad</td>
+                    <td>$@v.Total.ToString("F2")</td>
+                    <td>@v.Fecha.ToShortDateString()</td>
+                    <td>@v.Estado</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
 
 @code {
+    private List<Cliente>? clientes;
+    private List<Platillo>? platillos;
+    private List<VentaHistorial>? ventas;
+    private Venta nuevaVenta = new();
+    private int platilloSeleccionadoId = 0;
+    private int cantidad = 1;
+    private string mensajeError = string.Empty;
+    private string mensajeExito = string.Empty;
 
+    // Controla si se muestran los errores por campo
+    // Solo se activa cuando el usuario intenta guardar sin llenar todo
+    private bool mostrarErrores = false;
+
+    private HttpClient http = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            http = HttpClientFactory.CreateClient("ApiProfe");
+            await Task.WhenAll(CargarClientes(), CargarPlatillos());
+            await CargarHistorial();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar: {ex.Message}";
+        }
+    }
+
+    private async Task CargarClientes()
+    {
+        clientes = await Db.Clientes.AsNoTracking().ToListAsync();
+    }
+
+    private async Task CargarPlatillos()
+    {
+        var pan = await http.GetFromJsonAsync<List<Platillo>>("api/alimentacion/platillos/categoria/6") ?? new();
+        var postres = await http.GetFromJsonAsync<List<Platillo>>("api/alimentacion/platillos/categoria/5") ?? new();
+        var bebidas = await http.GetFromJsonAsync<List<Platillo>>("api/alimentacion/platillos/categoria/3") ?? new();
+        platillos = pan.Concat(postres).Concat(bebidas).ToList();
+    }
+
+    private async Task CargarHistorial()
+    {
+        var ventasDb = await Db.Ventas
+            .AsNoTracking()
+            .Include(v => v.Cliente)
+            .Include(v => v.Detalles)
+            .ToListAsync();
+
+        ventas = ventasDb.SelectMany(v => v.Detalles.Select(d => new VentaHistorial
+        {
+            VentaId = v.Id,
+            ClienteNombre = v.Cliente?.Nombre ?? "—",
+            ProductoNombre = platillos?.FirstOrDefault(p => p.Id == d.ProductoApiId)?.Nombre ?? $"Producto #{d.ProductoApiId}",
+            Cantidad = d.Cantidad,
+            Total = v.Total,
+            Fecha = v.Fecha,
+            Estado = v.Estado ?? "—"
+        })).ToList();
+    }
+
+    private async Task RegistrarVenta()
+    {
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+
+        // Activa la validación visual por campo
+        mostrarErrores = true;
+
+        // Verifica que todos los campos estén llenos antes de continuar
+        if (nuevaVenta.ClienteId == 0 || platilloSeleccionadoId == 0 || cantidad <= 0)
+        {
+            mensajeError = "Por favor llena todos los campos antes de registrar.";
+            return;
+        }
+
+        var platillo = platillos?.FirstOrDefault(p => p.Id == platilloSeleccionadoId);
+        if (platillo == null)
+        {
+            mensajeError = "Producto no encontrado.";
+            return;
+        }
+
+        var total = platillo.Precio * cantidad;
+
+        var venta = new Venta
+        {
+            ClienteId = nuevaVenta.ClienteId,
+            Fecha = DateTime.Now,
+            Total = total,
+            Estado = "Completada",
+            Detalles = new List<DetalleVenta>
+            {
+                new DetalleVenta
+                {
+                    ProductoApiId = platillo.Id,
+                    Cantidad = cantidad,
+                    Precio = platillo.Precio
+                }
+            }
+        };
+
+        Db.Ventas.Add(venta);
+        await Db.SaveChangesAsync();
+
+        // Limpiamos formulario y ocultamos errores al guardar exitosamente
+        nuevaVenta = new();
+        platilloSeleccionadoId = 0;
+        cantidad = 1;
+        mostrarErrores = false;
+        mensajeExito = "Venta registrada correctamente.";
+
+        await CargarHistorial();
+    }
+
+    private class VentaHistorial
+    {
+        public int VentaId { get; set; }
+        public string ClienteNombre { get; set; } = string.Empty;
+        public string ProductoNombre { get; set; } = string.Empty;
+        public int Cantidad { get; set; }
+        public decimal Total { get; set; }
+        public DateTime Fecha { get; set; }
+        public string Estado { get; set; } = string.Empty;
+    }
 }

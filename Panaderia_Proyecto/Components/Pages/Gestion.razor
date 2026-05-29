@@ -11,16 +11,19 @@
     <h4>@(clienteEditando.Id == 0 ? "Nuevo Cliente" : "Editar Cliente")</h4>
 
     <div>
-        <label>Nombre</label>
-        <input @bind="clienteEditando.Nombre" placeholder="Nombre completo" />
+        <label>Nombre *</label>
+        <input type="text" @bind="clienteEditando.Nombre" placeholder="Nombre completo" />
     </div>
     <div>
-        <label>Teléfono</label>
-        <input @bind="clienteEditando.Telefono" placeholder="10 dígitos" />
+        <label>Teléfono *</label>
+        @* type="tel" solo permite números y formatos de teléfono *@
+        <input type="tel" @bind="clienteEditando.Telefono" placeholder="10 dígitos"
+               maxlength="10" pattern="[0-9]{10}" />
     </div>
     <div>
-        <label>Email</label>
-        <input @bind="clienteEditando.Email" placeholder="correo@ejemplo.com" />
+        <label>Email *</label>
+        @* type="email" valida automáticamente el formato de correo *@
+        <input type="email" @bind="clienteEditando.Email" placeholder="correo@ejemplo.com" />
     </div>
 
     @if (!string.IsNullOrEmpty(mensajeError))
@@ -72,7 +75,10 @@ else
                     <td>@cliente.FechaRegistro.ToShortDateString()</td>
                     <td>
                         <button @onclick="() => EditarCliente(cliente)">Editar</button>
-                        <button @onclick="() => ConfirmarEliminar(cliente.Id)" style="color:red;">Eliminar</button>
+                        <button @onclick="() => ConfirmarEliminar(cliente.Id)"
+                                style="color:red;">
+                            Eliminar
+                        </button>
                     </td>
                 </tr>
             }
@@ -101,8 +107,6 @@ else
         await CargarClientes();
     }
 
-    // AsNoTracking hace que EF no rastree los objetos cargados
-    // Esto evita conflictos cuando luego intentamos editar o eliminar
     private async Task CargarClientes()
     {
         clientes = await Db.Clientes.AsNoTracking().ToListAsync();
@@ -113,22 +117,53 @@ else
         mensajeError = string.Empty;
         mensajeExito = string.Empty;
 
+        // Validación — todos los campos son obligatorios
         if (string.IsNullOrWhiteSpace(clienteEditando.Nombre))
         {
             mensajeError = "El nombre es obligatorio.";
             return;
         }
 
+        if (string.IsNullOrWhiteSpace(clienteEditando.Telefono))
+        {
+            mensajeError = "El teléfono es obligatorio.";
+            return;
+        }
+
+        // Validación — solo números en teléfono
+        if (!clienteEditando.Telefono.All(char.IsDigit))
+        {
+            mensajeError = "El teléfono solo puede contener números.";
+            return;
+        }
+
+        // Validación — exactamente 10 dígitos
+        if (clienteEditando.Telefono.Length != 10)
+        {
+            mensajeError = "El teléfono debe tener exactamente 10 dígitos.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(clienteEditando.Email))
+        {
+            mensajeError = "El email es obligatorio.";
+            return;
+        }
+
+        // Validación — formato de email válido
+        if (!clienteEditando.Email.Contains("@") || !clienteEditando.Email.Contains("."))
+        {
+            mensajeError = "El email no tiene un formato válido.";
+            return;
+        }
+
         if (clienteEditando.Id == 0)
         {
-            // Nuevo cliente — EF lo inserta en la BD
             Db.Clientes.Add(clienteEditando);
             mensajeExito = "Cliente agregado correctamente.";
         }
         else
         {
-            // Edición — buscamos el original rastreado por EF y le cambiamos los campos
-            // Esto evita el error de "already being tracked"
             var original = await Db.Clientes.FindAsync(clienteEditando.Id);
             if (original != null)
             {
@@ -170,7 +205,6 @@ else
 
     private async Task EliminarCliente()
     {
-        // FindAsync sí rastrea el objeto, lo que permite eliminarlo correctamente
         var cliente = await Db.Clientes.FindAsync(idAEliminar);
         if (cliente != null)
         {

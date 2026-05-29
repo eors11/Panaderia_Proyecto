@@ -1,9 +1,126 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@using Panaderia_Proyecto.Models
+@using Panaderia_Proyecto.Data
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext Db
+@inject IHttpClientFactory HttpClientFactory
+
 <PageTitle>Inicio - Panadería "El Quaso"</PageTitle>
 
 <div class="welcome-section">
     <h1 id="titulo">Bienvenido a la Administración de la Panadería</h1>
+    <div class="titulo-linea"></div>
     <p class="descripcion-home">
-        Gestiona aquí el catálogo de panes, croissants y repostería artesanal de El Quaso Panadería. Nuestro famoso “Quaso” acompaña cada creación horneada con dedicación, sabor y un toque único que nos distingue. Utiliza el menú superior para explorar las distintas secciones del sistema y administrar pedidos, productos y clientes.
+        Gestiona aquí el catálogo de panes, croissants y repostería artesanal de El Quaso Panadería.
+        Nuestro famoso "Quaso" acompaña cada creación horneada con dedicación, sabor y un toque único
+        que nos distingue. Utiliza el menú superior para explorar las distintas secciones del sistema
+        y administrar pedidos, productos y clientes.
     </p>
+
+    @* ========== INDICADORES — requisito de la rúbrica ========== *@
+    @* Muestra un dato de la BD y un dato de la API al mismo tiempo *@
+    <div class="indicadores">
+
+        @* Indicador 1 — dato de tu BD en Azure *@
+        <div class="indicador-card">
+            <span class="indicador-icono"></span>
+            <div class="indicador-info">
+                @if (totalClientes == null)
+                {
+                    <p class="indicador-numero">...</p>
+                }
+                else
+                {
+                    <p class="indicador-numero">@totalClientes</p>
+                }
+                <p class="indicador-label">Clientes registrados</p>
+                <p class="indicador-fuente">📂 Fuente: Base de datos</p>
+            </div>
+        </div>
+
+        @* Indicador 2 — dato de la API del profe *@
+        <div class="indicador-card">
+            <span class="indicador-icono"></span>
+            <div class="indicador-info">
+                @if (totalProductos == null)
+                {
+                    <p class="indicador-numero">...</p>
+                }
+                else
+                {
+                    <p class="indicador-numero">@totalProductos</p>
+                }
+                <p class="indicador-label">Productos en catálogo</p>
+                <p class="indicador-fuente">🌐 Fuente: API</p>
+            </div>
+        </div>
+
+        @* Indicador 3 — total ventas de tu BD *@
+        <div class="indicador-card">
+            <span class="indicador-icono"></span>
+            <div class="indicador-info">
+                @if (totalVentas == null)
+                {
+                    <p class="indicador-numero">...</p>
+                }
+                else
+                {
+                    <p class="indicador-numero">@totalVentas</p>
+                }
+                <p class="indicador-label">Ventas registradas</p>
+                <p class="indicador-fuente">📂 Fuente: Base de datos</p>
+            </div>
+        </div>
+
+    </div>
+
+    @if (!string.IsNullOrEmpty(mensajeError))
+    {
+        <p style="color:red;">⚠️ @mensajeError</p>
+    }
 </div>
+
+@code {
+    // Datos de la BD — null mientras cargan para mostrar "..."
+    private int? totalClientes;
+    private int? totalVentas;
+
+    // Dato de la API — null mientras carga
+    private int? totalProductos;
+
+    private string mensajeError = string.Empty;
+    private HttpClient http = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            http = HttpClientFactory.CreateClient("ApiProfe");
+
+            // Cargamos todo al mismo tiempo para que sea más rápido
+            await Task.WhenAll(CargarDatosBD(), CargarDatosAPI());
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar indicadores: {ex.Message}";
+        }
+    }
+
+    private async Task CargarDatosBD()
+    {
+        // CountAsync cuenta registros sin traer todos los datos — más eficiente
+        totalClientes = await Db.Clientes.CountAsync();
+        totalVentas = await Db.Ventas.CountAsync();
+    }
+
+    private async Task CargarDatosAPI()
+    {
+        // Traemos los platillos de las 3 categorías y contamos cuántos hay
+        var pan = await http.GetFromJsonAsync<List<Platillo>>("api/alimentacion/platillos/categoria/6") ?? new();
+        var postres = await http.GetFromJsonAsync<List<Platillo>>("api/alimentacion/platillos/categoria/5") ?? new();
+        var bebidas = await http.GetFromJsonAsync<List<Platillo>>("api/alimentacion/platillos/categoria/3") ?? new();
+
+        totalProductos = pan.Count + postres.Count + bebidas.Count;
+    }
+}
